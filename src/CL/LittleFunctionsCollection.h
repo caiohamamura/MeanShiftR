@@ -1,6 +1,4 @@
-
-
-
+#include <math.h>
 
 
 // Collection of all the little functions used by the main functions

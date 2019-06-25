@@ -4,11 +4,13 @@
 #include <stdbool.h>
 #include <math.h>
 #include <inttypes.h>
-#include <Rcpp.h>
 #include "hashtable.h"
 
 
-
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 hashtable *ht_create( const int size , const int idSize) {
   hashtable* ht = NULL;
@@ -29,6 +31,7 @@ hashtable *ht_create( const int size , const int idSize) {
 
   return ht;
 }
+
 
 uint64_t hashCode(uint64_t x, const int size) {
   x = (x ^ (x >> 30)) * UINT64_C(0xbf58476d1ce4e5b9);
@@ -117,3 +120,8 @@ int *getAround(hashtable *ht, const double x, const double y, const double dist,
   *oSize = n;
   return out;
 }
+
+
+#ifdef __cplusplus
+}
+#endif
