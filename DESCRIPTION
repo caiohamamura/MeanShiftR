@@ -25,6 +25,6 @@ Imports:
     raster
 Depends:
     data.table,
-LinkingTo: Rcpp, RANN2
+LinkingTo: Rcpp
 RoxygenNote: 6.1.1
 Encoding: UTF-8

@@ -1,7 +1,1 @@
-STD=
-PKG_IMPORT=RANN2
-PKG_HOME=`${R_HOME}/bin/Rscript -e 'cat(system.file(package=\"$(PKG_IMPORT)\"))'`
-PKG_LIBS+=-L$(PKG_HOME)/lib -l$(PKG_IMPORT)
-
-
 PKG_CPPFLAGS+=-O3
