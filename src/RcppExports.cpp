@@ -5,24 +5,24 @@
 
 using namespace Rcpp;
 
-// MeanShift_Classical
-DataFrame MeanShift_Classical(NumericMatrix pc, double H2CW_fac, double H2CL_fac, bool UniformKernel, int MaxIter);
-RcppExport SEXP _MeanShiftR_MeanShift_Classical(SEXP pcSEXP, SEXP H2CW_facSEXP, SEXP H2CL_facSEXP, SEXP UniformKernelSEXP, SEXP MaxIterSEXP) {
+// C_MeanShift_Classical
+DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double H2CL_fac, const bool UniformKernel, const int MaxIter);
+RcppExport SEXP _MeanShiftR_C_MeanShift_Classical(SEXP pcSEXP, SEXP H2CW_facSEXP, SEXP H2CL_facSEXP, SEXP UniformKernelSEXP, SEXP MaxIterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type pc(pcSEXP);
-    Rcpp::traits::input_parameter< double >::type H2CW_fac(H2CW_facSEXP);
+    Rcpp::traits::input_parameter< const double >::type H2CW_fac(H2CW_facSEXP);
     Rcpp::traits::input_parameter< double >::type H2CL_fac(H2CL_facSEXP);
-    Rcpp::traits::input_parameter< bool >::type UniformKernel(UniformKernelSEXP);
-    Rcpp::traits::input_parameter< int >::type MaxIter(MaxIterSEXP);
-    rcpp_result_gen = Rcpp::wrap(MeanShift_Classical(pc, H2CW_fac, H2CL_fac, UniformKernel, MaxIter));
+    Rcpp::traits::input_parameter< const bool >::type UniformKernel(UniformKernelSEXP);
+    Rcpp::traits::input_parameter< const int >::type MaxIter(MaxIterSEXP);
+    rcpp_result_gen = Rcpp::wrap(C_MeanShift_Classical(pc, H2CW_fac, H2CL_fac, UniformKernel, MaxIter));
     return rcpp_result_gen;
 END_RCPP
 }
-// MeanShift_Voxels
-DataFrame MeanShift_Voxels(NumericMatrix pc, double H2CW_fac, double H2CL_fac, bool UniformKernel, int MaxIter, int maxx, int maxy, int maxz);
-RcppExport SEXP _MeanShiftR_MeanShift_Voxels(SEXP pcSEXP, SEXP H2CW_facSEXP, SEXP H2CL_facSEXP, SEXP UniformKernelSEXP, SEXP MaxIterSEXP, SEXP maxxSEXP, SEXP maxySEXP, SEXP maxzSEXP) {
+// C_MeanShift_Voxels
+DataFrame C_MeanShift_Voxels(NumericMatrix pc, double H2CW_fac, double H2CL_fac, bool UniformKernel, int MaxIter, int maxx, int maxy, int maxz);
+RcppExport SEXP _MeanShiftR_C_MeanShift_Voxels(SEXP pcSEXP, SEXP H2CW_facSEXP, SEXP H2CL_facSEXP, SEXP UniformKernelSEXP, SEXP MaxIterSEXP, SEXP maxxSEXP, SEXP maxySEXP, SEXP maxzSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -34,14 +34,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type maxx(maxxSEXP);
     Rcpp::traits::input_parameter< int >::type maxy(maxySEXP);
     Rcpp::traits::input_parameter< int >::type maxz(maxzSEXP);
-    rcpp_result_gen = Rcpp::wrap(MeanShift_Voxels(pc, H2CW_fac, H2CL_fac, UniformKernel, MaxIter, maxx, maxy, maxz));
+    rcpp_result_gen = Rcpp::wrap(C_MeanShift_Voxels(pc, H2CW_fac, H2CL_fac, UniformKernel, MaxIter, maxx, maxy, maxz));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_MeanShiftR_MeanShift_Classical", (DL_FUNC) &_MeanShiftR_MeanShift_Classical, 5},
-    {"_MeanShiftR_MeanShift_Voxels", (DL_FUNC) &_MeanShiftR_MeanShift_Voxels, 8},
+    {"_MeanShiftR_C_MeanShift_Classical", (DL_FUNC) &_MeanShiftR_C_MeanShift_Classical, 5},
+    {"_MeanShiftR_C_MeanShift_Voxels", (DL_FUNC) &_MeanShiftR_C_MeanShift_Voxels, 8},
     {NULL, NULL, 0}
 };
 
