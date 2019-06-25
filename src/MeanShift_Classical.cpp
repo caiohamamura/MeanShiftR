@@ -3,26 +3,10 @@
 #include "LittleFunctionsCollection.h"
 #include "Progress.h"
 #include <unordered_map>
+#include "hashtable.h"
+
 using namespace Rcpp;
 using namespace std;
-
-
-vector<int> getAround(unordered_map<uint64_t, vector<int>> *hashMap, const double x, const double y, const double dist, const uint8_t bitShift) {
-  vector<int> myVec;
-  uint64_t xMin = (uint64_t)(x - dist);
-  uint64_t xMax = (uint64_t)(x + dist + 0.5);
-  uint64_t yMin = (uint64_t)(y - dist);
-  uint64_t yMax = (uint64_t)(y + dist + 0.5);
-  for (uint64_t curY = yMin; curY <= yMax; curY++) {
-    for (uint64_t curX = xMin; curX <= xMax; curX++) {
-      uint64_t idx = (curX << bitShift) + curY;
-      for (int it : (*hashMap)[idx]) {
-        myVec.push_back(it);
-      }
-    }
-  }
-  return myVec;
-}
 
 //' Mean shift clustering
 //'
@@ -50,7 +34,6 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
   //////////////////////////
   // Create an index tree
   /////////////////////////
-  const int n_dimensions = 2;  // X, Y
   std::unordered_map<uint64_t, std::vector<int>> mapIndex;
 
   // Remove min
@@ -60,20 +43,40 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
   // NumericVector Z = pc( _, 3 );
   NumericVector rngX = Rcpp::range(X);
   NumericVector rngY = Rcpp::range(Y);
-  const uint8_t bitShift = log2(rngY[1]) + 1;
+  const int mult = rngY[1] + 0.5;
   // std::cout << "Max y:" << rngY[1] << std::endl;
   for (int i = 0; i < nrows; i++) {
-    X[i] -= rngX[0];
-    Y[i] -= rngY[0];
-    uint64_t idx = ((uint64_t)X[i] << bitShift) + Y[i];
+    uint64_t idx = ((uint64_t)X[i] * mult) + Y[i];
     mapIndex[idx].push_back(i);
   }
 
+  int maxSize = mapIndex.size();
+  hashtable *ht = ht_create(maxSize*1.1, nrows);
+
+
+  for (auto& it: mapIndex) {
+    ht_insert(ht, it.first, (int*)&(it.second[0]), it.second.size());
+  }
+
+
+  // uint64_t idx = ((uint64_t)X[1] * mult) + Y[1];
+  // int count = -1;
+  // int* vals = ht_get(ht, idx, &count);
+  // Rcout << "idx: " << idx << endl;
+  // Rcout << "count: " << count << endl;
+  // for (int i = 0; i < count; i++) {
+  //       Rcout << "id: " << vals[i] << endl;
+  // }
+  // Rcout << "Build OK" << endl;
+  // return DataFrame::create();
+
+
+
   // for (auto& it: mapIndex) {
-  //   if (it.second.size() > 1) {
-  //   cout << it.first << endl;
-  //   cout << it.second.size() << endl;
-  //   break;
+  //   int size = -1;
+  //   int *ptr = ht_get(ht, it.first, &size);
+  //   for (int i = 0; i < size; i++) {
+  //     Rcout << ptr[i] << endl;
   //   }
   // }
 
@@ -112,8 +115,11 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
       const double h = H2CL_fac * oldz;
 
       //
-      vector<int> nn_idx = getAround(&mapIndex, oldx, oldy, r, bitShift);
-      const int n_points = nn_idx.size();
+      int n_points = 0;
+      // Rcout << "Starting getAround...\n";
+      int* nn_idx = getAround(ht, oldx, oldy, r, mult, rngX[1], rngY[1], &n_points);
+      // Rcout << "i: " << i << ", n_points: " << n_points << endl;
+
 
       // Loop through all points to identify the neighbors of the focal point
       for(int j=0; j < n_points; j++) {

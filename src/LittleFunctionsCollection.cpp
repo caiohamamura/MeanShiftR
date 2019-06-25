@@ -5,6 +5,8 @@ using namespace Rcpp;
 
 // Collection of all the little functions used by the main functions
 
+
+
 // Function to check whether a point [PointX, PointY, PointZ] is within a cylider of a given radius
 // and height from the center point of the top circle [TopX, TopY, TopZ]
 bool InCylinder(double PointX, double PointY, double PointZ, double Radius, double Height, double CtrX, double CtrY, double CtrZ){
