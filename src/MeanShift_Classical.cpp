@@ -1,12 +1,21 @@
 #include <Rcpp.h>
 #include <cmath>
 #include "LittleFunctionsCollection.h"
-#include "Progress.h"
+#include <Progress.h>
 #include <unordered_map>
-#include "hashtable.h"
+#include <hashtable.h>
+#include <CL/cl.hpp>
+#include <CL/kernelMeanShift.h>
 
 using namespace Rcpp;
-using namespace std;
+
+void configureOpenCL() {
+
+
+
+}
+
+
 
 //' Mean shift clustering
 //'
@@ -41,9 +50,9 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
   NumericVector Y = pc( _, 1 );
   NumericVector Z = pc( _, 2 );
   // NumericVector Z = pc( _, 3 );
-  NumericVector rngX = Rcpp::range(X);
-  NumericVector rngY = Rcpp::range(Y);
-  const int mult = rngY[1] + 0.5;
+  int64_t maxX = ((NumericVector)Rcpp::range(X))[0];
+  int64_t maxY = ((NumericVector)Rcpp::range(Y))[0];
+  const int mult = maxY + 0.5;
   // std::cout << "Max y:" << rngY[1] << std::endl;
   for (int i = 0; i < nrows; i++) {
     uint64_t idx = ((uint64_t)X[i] * mult) + Y[i];
@@ -81,120 +90,108 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
   // }
 
 
-  // Loop through all points to process one after the other
-  for(int i=0; i<nrows; i++){
-    pb.increment();
+  ////////////////////////////
+  // OPENCL
+  ////////////////////////////
+  VECTOR_CLASS<cl::Platform> platforms;
+  cl::Platform::get(&platforms);
+  VECTOR_CLASS<cl::Device> devices;
+  platforms[0].getDevices(CL_DEVICE_TYPE_ALL, &devices);
+  cl::Context context(devices);
 
-    // Initialize variables to store wthe mean coordinates of all neigbors with the
-    // actual coordinates of the focal point from where the kernel starts moving
-    double meanx = (double) X[i];
-    double meany = (double) Y[i];
-    double meanz = (double) pc(i,2);
-
-
-    // Initialize variables to store the old coodinates with unrealistic values of -100
-    double oldx = (double) meanx;
-    double oldy = (double) meany;
-    double oldz = (double) meanz;
-
-    // Keep iterating as long as the centroid (or the maximum number of iterations) is not reached
-    int IterCounter = 0;
-    do {
-
-      double sumx = 0.0;
-      double sumy = 0.0;
-      double sumz = 0.0;
-      double sump = 0.0;
-
-      // Increase the iteration counter
-      IterCounter = IterCounter + 1;
-
-      // Calculate cylinder dimensions based on point height
-      const double r = H2CW_fac * oldz * 0.5;
-      const double d = H2CW_fac * oldz;
-      const double h = H2CL_fac * oldz;
-
-      //
-      int n_points = 0;
-      // Rcout << "Starting getAround...\n";
-      int* nn_idx = getAround(ht, oldx, oldy, r, mult, rngX[1], rngY[1], &n_points);
-      // Rcout << "i: " << i << ", n_points: " << n_points << endl;
+  cl_int err = -1;
 
 
-      // Loop through all points to identify the neighbors of the focal point
-      for(int j=0; j < n_points; j++) {
-        // for(int j=0; j<nrows; j++){
+  cl::Program vectorWrapper(
+      context,
+      KERNELSTRING,
+      false
+  );
+  err = vectorWrapper.build("-I");
 
-        const int idx = nn_idx[j];
-        const double jx = (double) X[idx];
-        const double jy = (double) Y[idx];
-        const double jz = (double) pc(idx, 2);
-        // double jx = (double) pc(j, 0);
-        // double jy = (double) pc(j, 1);
-        // double jz = (double) pc(j, 2);
 
-        if(InCylinder(jx, jy, jz, r, h, oldx, oldy, oldz)){
-          // if(abs(jz - meanz) <= (h/2.0)){
-
-          // If the option of a uniform kernel is set to false calculate the centroid
-          // by multiplying all coodinates by their weights, depending on their relative
-          // position within the cylinder, summing up the products and dividing by the
-          // sum of all weights
-          if(UniformKernel == false){
-            const double verticalweight = EpanechnikovFunction(h, oldz, jz);
-            const double horizontalweight = GaussFunction(d, oldx, oldy, jx, jy);
-            const double weight = verticalweight * horizontalweight;
-            sumx = sumx + weight * jx;
-            sumy = sumy + weight * jy;
-            sumz = sumz + weight * jz;
-            sump = sump + weight;
-          }
-          // If the option of a uniform kernel is set to true calculate the centroid
-          // by summing up all coodinates and dividing by the number of points
-          else
-          {
-            sumx = sumx + jx;
-            sumy = sumy + jy;
-            sumz = sumz + jz;
-            sump = sump + 1.0;
-          }
-        }
-      }
-      meanx = sumx / sump;
-      meany = sumy / sump;
-      meanz = sumz / sump;
-
-      if (meanx == oldx && meany == oldy && meanz == oldz)
-        break;
-
-      // Remember the coordinate means (kernel position) of previos iteration
-      oldx = meanx;
-      oldy = meany;
-      oldz = meanz;
-
-      // If the new position equals the previous position (kernel stopped moving), or if the
-      // maximum number of iterations is reached, stop the iterations
-    }  while(IterCounter < MaxIter);
-
-    // Store the found position as the centroid position for the focal point
-    centroidx[i] = meanx + rngX[0];
-    centroidy[i] = meany + rngY[0];
-    centroidz[i] = meanz;
-
-    if ((i % 1000) == 999) {
-      try
-      {
-        Rcpp::checkUserInterrupt();
-      }
-      catch(Rcpp::internal::InterruptedException e)
-      {
-        return DataFrame::create();
-      }
-    }
+  if (err == CL_BUILD_PROGRAM_FAILURE) {
+    std::string buildlog = vectorWrapper.getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices[0]);
+    std::cerr << "Build log:"
+              << buildlog << std::endl;
+    return DataFrame::create();
   }
 
+  cl::Buffer buf_ht(CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, (size_t)(sizeof(keyvalue) * ht->size), ht->table);
+  cl::Buffer buf_ids(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_int) * ht->size, ht->ids);
+  cl::Buffer buf_X(context, X.begin(), X.end(), true);
+  cl::Buffer buf_Y(context, Y.begin(), Y.end(), true);
+  cl::Buffer buf_Z(context, Z.begin(), Z.end(), true);
+  cl::Buffer buf_H2CW_fac(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, (size_t)(sizeof(cl_double)), (void*)&H2CW_fac);
+  cl::Buffer buf_H2CL_fac(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_double), (void*)&H2CL_fac);
+  cl::Buffer buf_MaxIter(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_int), (void*)&MaxIter);
+  cl::Buffer buf_mult(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_int), (void*)&mult);
+  cl::Buffer buf_maxX(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_long), (void*)&maxX);
+  cl::Buffer buf_maxY(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_long), (void*)&maxY);
+  cl::Buffer buf_UniformKernel(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_bool), (void*)&UniformKernel);
+  cl::Buffer buf_centroidX(context, CL_MEM_WRITE_ONLY, sizeof(cl_double)*nrows, NULL);
+  cl::Buffer buf_centroidY(context, CL_MEM_WRITE_ONLY, sizeof(cl_double)*nrows, NULL);
+  cl::Buffer buf_centroidZ(context, CL_MEM_WRITE_ONLY, sizeof(cl_double)*nrows, NULL);
 
 
+
+
+  auto vectorAddKernel =
+    cl::make_kernel<
+      cl::Buffer&,
+      cl::Buffer&,
+      cl::Buffer&,
+      cl::Buffer&,
+      cl::Buffer&,
+      cl::Buffer&,
+      cl::Buffer&,
+      cl::Buffer&,
+      cl::Buffer&,
+      cl::Buffer&,
+      cl::Buffer&,
+      cl::Buffer&,
+      cl::Buffer&,
+      cl::Buffer&,
+      cl::Buffer&
+    >( vectorWrapper, "cl_mean_shift" );
+
+    vectorAddKernel(cl::EnqueueArgs(
+        nrows),
+        buf_ht,
+        buf_ids,
+        buf_X,
+        buf_Y,
+        buf_Z,
+        buf_H2CW_fac,
+        buf_H2CL_fac,
+        buf_MaxIter,
+        buf_mult,
+        buf_maxX,
+        buf_maxY,
+        buf_UniformKernel,
+        buf_centroidX,
+        buf_centroidY,
+        buf_centroidZ);
+
+    cl::copy(buf_centroidX, std::begin(centroidx), std::end(centroidx));
+    cl::copy(buf_centroidY, std::begin(centroidy), std::end(centroidy));
+    cl::copy(buf_centroidZ, std::begin(centroidz), std::end(centroidz));
+
+    clReleaseMemObject(buf_ht());
+    clReleaseMemObject(buf_ids());
+    clReleaseMemObject(buf_X());
+    clReleaseMemObject(buf_Y());
+    clReleaseMemObject(buf_Z());
+    clReleaseMemObject(buf_H2CW_fac());
+    clReleaseMemObject(buf_H2CL_fac());
+    clReleaseMemObject(buf_MaxIter());
+    clReleaseMemObject(buf_mult());
+    clReleaseMemObject(buf_maxX());
+    clReleaseMemObject(buf_maxY());
+    clReleaseMemObject(buf_UniformKernel());
+    clReleaseMemObject(buf_centroidX());
+    clReleaseMemObject(buf_centroidY());
+    clReleaseMemObject(buf_centroidZ());
   // Return the result as a data.frame with XYZ-coordinates of all points and their corresponding centroids
   return DataFrame::create(_["X"]= pc(_,0),_["Y"]= pc(_,1),_["Z"]= pc(_,2),_["CtrX"]= centroidx,_["CtrY"]= centroidy,_["CtrZ"]= centroidz);
 }
