@@ -17,7 +17,7 @@
 #' @return data.table of point cloud with points labelled with tree IDs
 #' @keywords point cloud split buffer area plot subset parallel
 #' @author Nikolai Knapp, nikolai.knapp@ufz.de
-
+#' @export
 parallel_MeanShift <- function(pc.list, lib.path=NA, frac.cores=0.5, version="classic", H2CW=0.3, H2CL=0.4,
                                max.iter=20, buffer.width=10, minz=2, ctr.ac=2){
 
@@ -71,9 +71,9 @@ parallel_MeanShift <- function(pc.list, lib.path=NA, frac.cores=0.5, version="cl
 
     # Run the mean shift (two different versions)
     if(version=="classic"){
-      cluster.df <- MeanShift_Classical(pc=my.mx, H2CW_fac=H2CW, H2CL_fac=H2CL, UniformKernel=F, MaxIter=max.iter)
+      cluster.df <- C_MeanShift_Classical(pc=my.mx, H2CW_fac=H2CW, H2CL_fac=H2CL, UniformKernel=F, MaxIter=max.iter)
     }else if(version=="voxel"){
-      cluster.df <- MeanShift_Voxels(pc=my.mx, H2CW_fac=H2CW, H2CL_fac=H2CL, UniformKernel=F, MaxIter=max.iter, maxx=my.rangex, maxy=my.rangey, maxz=my.maxz)
+      cluster.df <- C_MeanShift_Voxels(pc=my.mx, H2CW_fac=H2CW, H2CL_fac=H2CL, UniformKernel=F, MaxIter=max.iter, maxx=my.rangex, maxy=my.rangey, maxz=my.maxz)
     }
 
     # Round the centroid coordinates

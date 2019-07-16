@@ -15,9 +15,8 @@ using namespace Rcpp;
 //' @param UniformKernel Boolean to enable the application of a simple uniform kernel without distance weighting (Default False)
 //' @param MaxIter Maximum number of iterations, i.e. steps that the kernel can move for each point. If centroid is not found after all iteration, the last position is assigned as centroid and the processing jumps to the next point
 //' @return data.frame with X, Y and Z coordinates of each point in the point cloud and  X, Y and Z coordinates of the centroid to which the point belongs
-//' @export
 // [[Rcpp::export]]
-DataFrame MeanShift_Classical(NumericMatrix pc, double H2CW_fac, double H2CL_fac, bool UniformKernel=false, int MaxIter=20){
+DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double H2CL_fac, const bool UniformKernel=false, const int MaxIter=20){
 
   // Create three vectors that all have the length of the incoming point cloud.
   // In these vectors the coodinates of the centroids will be stored

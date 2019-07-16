@@ -15,15 +15,15 @@ Description: The package allows individual tree crown delineation (ITCD) from
 	Remote Sensing of Environment. [Online]. 183. p.pp. 318-333.    
 License: GPL-3
 LazyData: TRUE
-Depends:
+Imports:
     cluster,
     data.table,
     pbapply,
     plyr,
-    Rcpp (>= 0.12.9),
     rgeos,
     sp,
     tripack,
     raster
 LinkingTo: Rcpp
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
+Encoding: UTF-8

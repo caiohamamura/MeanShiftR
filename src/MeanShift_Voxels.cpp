@@ -19,9 +19,8 @@ using namespace std;
 //' @param maxy Maximum Y-coordinate
 //' @param maxz Maximum Z-coordinate
 //' @return data.frame with X, Y and Z coordinates of each point in the point cloud and  X, Y and Z coordinates of the centroid to which the point belongs
-//' @export
 // [[Rcpp::export]]
-DataFrame MeanShift_Voxels(NumericMatrix pc, double H2CW_fac, double H2CL_fac, bool UniformKernel=false, int MaxIter=20, int maxx=100, int maxy=100, int maxz=60){
+DataFrame C_MeanShift_Voxels(NumericMatrix pc, double H2CW_fac, double H2CL_fac, bool UniformKernel=false, int MaxIter=20, int maxx=100, int maxy=100, int maxz=60){
 
   int nrows = pc.nrow();
   int minx = 0;

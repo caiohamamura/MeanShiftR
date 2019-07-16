@@ -8,7 +8,7 @@
 #' @return List of sub point clouds and buffer and core points labeled in boolean column "Buffer"
 #' @keywords point cloud split buffer area plot subset parallel
 #' @author Nikolai Knapp, nikolai.knapp@ufz.de
-
+#' @export
 split_BufferedPointCloud <- function(pc.dt, plot.width, buffer.width){
 
   # Package requirements

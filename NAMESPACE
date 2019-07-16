@@ -2,6 +2,6 @@
 
 export(MeanShift_Classical)
 export(MeanShift_Voxels)
-
+export(parallel_MeanShift)
+export(split_BufferedPointCloud)
 useDynLib(MeanShiftR)
-exportPattern("^[[:alpha:]]+")
