@@ -1,8 +1,28 @@
 #include <Rcpp.h>
 #include <cmath>
 #include "LittleFunctionsCollection.h"
+#include "Progress.h"
+#include <unordered_map>
 using namespace Rcpp;
+using namespace std;
 
+
+vector<int> getAround(unordered_map<uint64_t, vector<int>> *hashMap, const double x, const double y, const double dist, const uint8_t bitShift) {
+  vector<int> myVec;
+  uint64_t xMin = (uint64_t)(x - dist);
+  uint64_t xMax = (uint64_t)(x + dist + 0.5);
+  uint64_t yMin = (uint64_t)(y - dist);
+  uint64_t yMax = (uint64_t)(y + dist + 0.5);
+  for (uint64_t curY = yMin; curY <= yMax; curY++) {
+    for (uint64_t curX = xMin; curX <= xMax; curX++) {
+      uint64_t idx = (curX << bitShift) + curY;
+      for (int it : (*hashMap)[idx]) {
+        myVec.push_back(it);
+      }
+    }
+  }
+  return myVec;
+}
 
 //' Mean shift clustering
 //'
@@ -20,74 +40,104 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
 
   // Create three vectors that all have the length of the incoming point cloud.
   // In these vectors the coodinates of the centroids will be stored
-  int nrows = pc.nrow();
+  const int nrows = pc.nrow();
   NumericVector centroidx(nrows);
   NumericVector centroidy(nrows);
   NumericVector centroidz(nrows);
 
+  Progress pb(nrows, "Meanshifting: ");
+
+  //////////////////////////
+  // Create an index tree
+  /////////////////////////
+  const int n_dimensions = 2;  // X, Y
+  std::unordered_map<uint64_t, std::vector<int>> mapIndex;
+
+  // Remove min
+  NumericVector X = pc( _, 0 );
+  NumericVector Y = pc( _, 1 );
+  NumericVector Z = pc( _, 2 );
+  // NumericVector Z = pc( _, 3 );
+  NumericVector rngX = Rcpp::range(X);
+  NumericVector rngY = Rcpp::range(Y);
+  const uint8_t bitShift = log2(rngY[1]) + 1;
+  // std::cout << "Max y:" << rngY[1] << std::endl;
+  for (int i = 0; i < nrows; i++) {
+    X[i] -= rngX[0];
+    Y[i] -= rngY[0];
+    uint64_t idx = ((uint64_t)X[i] << bitShift) + Y[i];
+    mapIndex[idx].push_back(i);
+  }
+
+  // for (auto& it: mapIndex) {
+  //   if (it.second.size() > 1) {
+  //   cout << it.first << endl;
+  //   cout << it.second.size() << endl;
+  //   break;
+  //   }
+  // }
+
+
   // Loop through all points to process one after the other
   for(int i=0; i<nrows; i++){
+    pb.increment();
 
-    // Initialize variables to store the mean coordinates of all neigbors with the
+    // Initialize variables to store wthe mean coordinates of all neigbors with the
     // actual coordinates of the focal point from where the kernel starts moving
-    double meanx = (double) pc(i,0);
-    double meany = (double) pc(i,1);
+    double meanx = (double) X[i];
+    double meany = (double) Y[i];
     double meanz = (double) pc(i,2);
 
+
     // Initialize variables to store the old coodinates with unrealistic values of -100
-    double oldx = -100.0;
-    double oldy = -100.0;
-    double oldz = -100.0;
-
-    // Initialize further variables with zero
-    double sumx = 0.0;
-    double sumy = 0.0;
-    double sumz = 0.0;
-    double sump = 0.0;
-
-    double verticalweight = 0.0;
-    double horizontalweight = 0.0;
-    double weight = 0.0;
+    double oldx = (double) meanx;
+    double oldy = (double) meany;
+    double oldz = (double) meanz;
 
     // Keep iterating as long as the centroid (or the maximum number of iterations) is not reached
     int IterCounter = 0;
     do {
 
-      sumx = 0.0;
-      sumy = 0.0;
-      sumz = 0.0;
-      sump = 0.0;
+      double sumx = 0.0;
+      double sumy = 0.0;
+      double sumz = 0.0;
+      double sump = 0.0;
 
       // Increase the iteration counter
       IterCounter = IterCounter + 1;
 
       // Calculate cylinder dimensions based on point height
-      double r = H2CW_fac * meanz * 0.5;
-      double d = H2CW_fac * meanz;
-      double h = H2CL_fac * meanz;
+      const double r = H2CW_fac * oldz * 0.5;
+      const double d = H2CW_fac * oldz;
+      const double h = H2CL_fac * oldz;
 
-      // Remember the coordinate means (kernel position) of previos iteration
-       oldx = meanx;
-       oldy = meany;
-       oldz = meanz;
+      //
+      vector<int> nn_idx = getAround(&mapIndex, oldx, oldy, r, bitShift);
+      const int n_points = nn_idx.size();
 
       // Loop through all points to identify the neighbors of the focal point
-      for(int j=0; j<nrows; j++){
+      for(int j=0; j < n_points; j++) {
+        // for(int j=0; j<nrows; j++){
 
-        double jx = (double) pc(j,0);
-        double jy = (double) pc(j,1);
-        double jz = (double) pc(j,2);
+        const int idx = nn_idx[j];
+        const double jx = (double) X[idx];
+        const double jy = (double) Y[idx];
+        const double jz = (double) pc(idx, 2);
+        // double jx = (double) pc(j, 0);
+        // double jy = (double) pc(j, 1);
+        // double jz = (double) pc(j, 2);
 
-        if(InCylinder(jx, jy, jz, r, h, meanx, meany, meanz) == true){
+        if(InCylinder(jx, jy, jz, r, h, oldx, oldy, oldz)){
+          // if(abs(jz - meanz) <= (h/2.0)){
 
           // If the option of a uniform kernel is set to false calculate the centroid
           // by multiplying all coodinates by their weights, depending on their relative
           // position within the cylinder, summing up the products and dividing by the
           // sum of all weights
           if(UniformKernel == false){
-            verticalweight = EpanechnikovFunction(h, meanz, jz);
-            horizontalweight = GaussFunction(d, meanx, meany, jx, jy);
-            weight = verticalweight * horizontalweight;
+            const double verticalweight = EpanechnikovFunction(h, oldz, jz);
+            const double horizontalweight = GaussFunction(d, oldx, oldy, jx, jy);
+            const double weight = verticalweight * horizontalweight;
             sumx = sumx + weight * jx;
             sumy = sumy + weight * jy;
             sumz = sumz + weight * jz;
@@ -108,36 +158,38 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
       meany = sumy / sump;
       meanz = sumz / sump;
 
-    // If the new position equals the previous position (kernel stopped moving), or if the
-    // maximum number of iterations is reached, stop the iterations
-    }while(meanx != oldx && meany != oldy && meanz != oldz && IterCounter < MaxIter);
+      if (meanx == oldx && meany == oldy && meanz == oldz)
+        break;
+
+      // Remember the coordinate means (kernel position) of previos iteration
+      oldx = meanx;
+      oldy = meany;
+      oldz = meanz;
+
+      // If the new position equals the previous position (kernel stopped moving), or if the
+      // maximum number of iterations is reached, stop the iterations
+    }  while(IterCounter < MaxIter);
 
     // Store the found position as the centroid position for the focal point
-    centroidx[i] = meanx;
-    centroidy[i] = meany;
+    centroidx[i] = meanx + rngX[0];
+    centroidy[i] = meany + rngY[0];
     centroidz[i] = meanz;
+
+    if ((i % 1000) == 999) {
+      try
+      {
+        Rcpp::checkUserInterrupt();
+      }
+      catch(Rcpp::internal::InterruptedException e)
+      {
+        return DataFrame::create();
+      }
+    }
   }
 
- // Return the result as a data.frame with XYZ-coordinates of all points and their corresponding centroids
- return DataFrame::create(_["X"]= pc(_,0),_["Y"]= pc(_,1),_["Z"]= pc(_,2),_["CtrX"]= centroidx,_["CtrY"]= centroidy,_["CtrZ"]= centroidz);
+
+
+  // Return the result as a data.frame with XYZ-coordinates of all points and their corresponding centroids
+  return DataFrame::create(_["X"]= pc(_,0),_["Y"]= pc(_,1),_["Z"]= pc(_,2),_["CtrX"]= centroidx,_["CtrY"]= centroidy,_["CtrZ"]= centroidz);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
