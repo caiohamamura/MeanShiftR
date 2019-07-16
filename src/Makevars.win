@@ -1,0 +1,1 @@
+PKG_CPPFLAGS+=-DDLL_EXPORTS -std=c++14
