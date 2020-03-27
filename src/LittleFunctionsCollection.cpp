@@ -63,7 +63,7 @@ double EpanechnikovFunction(double Height, double CtrZ, double PointZ){
 double GaussFunction(double Width, double CtrX, double CtrY, double PointX, double PointY){
   double Distance = pow((pow((PointX-CtrX), 2.0)+pow((PointY-CtrY), 2.0)), 0.5);
   double NormDistance = Distance/Width;
-  double Result = std::exp(-5.0*pow(NormDistance, 2.0));
+  double Result = std::exp(-0.5*pow(NormDistance, 2.0));
   return Result;
 }
 
