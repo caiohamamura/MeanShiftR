@@ -1,6 +1,6 @@
 Package: MeanShiftR
 Type: Package
-Title: Tree delineation from lidar using mean shift clustering
+Title: Tree Delineation from Lidar Using Mean Shift Clustering
 Version: 0.1.1
 Author: Nikolai Knapp
 Maintainer: Nikolai Knapp <nikolai.knapp@ufz.de>
@@ -18,12 +18,15 @@ LazyData: TRUE
 Imports:
     cluster,
     data.table,
+    parallel,
     pbapply,
     plyr,
     rgeos,
     sp,
+    stats,
     tripack,
-    raster
+    raster,
+    Rcpp
 LinkingTo: Rcpp
 RoxygenNote: 6.1.1
 Encoding: UTF-8

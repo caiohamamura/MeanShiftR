@@ -50,7 +50,6 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
   //////////////////////////
   // Create an index tree
   /////////////////////////
-  const int n_dimensions = 2;  // X, Y
   std::unordered_map<uint64_t, std::vector<int>> mapIndex;
 
   // Remove min
@@ -68,14 +67,6 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
     uint64_t idx = ((uint64_t)X[i] << bitShift) + Y[i];
     mapIndex[idx].push_back(i);
   }
-
-  // for (auto& it: mapIndex) {
-  //   if (it.second.size() > 1) {
-  //   cout << it.first << endl;
-  //   cout << it.second.size() << endl;
-  //   break;
-  //   }
-  // }
 
 
   // Loop through all points to process one after the other

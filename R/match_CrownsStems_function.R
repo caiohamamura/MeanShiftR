@@ -11,13 +11,11 @@
 #' @return SpatialPolygonsDataFrame of tree crown projection areas with additional columns containing the attributes of the assigned stem for each crown
 #' @keywords tree crown projection area polygon point stem foot position DBH diameter link match inventory ground truth
 #' @author Nikolai Knapp, nikolai.knapp@ufz.de
-
 match_CrownsStems <- function(crowns.spdf, stems.spdf, DBH.min=0.05){
-
-  # Package requirements
-  require(rgeos)
-  require(sp)
-
+  DBH = X = Y = 
+  TreeID = Species = 
+  Z = Buffer = NA
+  
   # Calculate area of each polygon
   Area.vec<- gArea(crowns.spdf, byid=T)
   # Sort the crowns for decreasing area
@@ -38,10 +36,10 @@ match_CrownsStems <- function(crowns.spdf, stems.spdf, DBH.min=0.05){
   for(i in 1:nrow(crowns.spdf)){
     # i=41
     my.crown.spdf <- crowns.spdf[i, ]
-    my.crown.extent <- extent(my.crown.spdf)
+    my.crown.extent <- raster::extent(my.crown.spdf)
 
     # Find all stems that fall into the crown projection area
-    my.pot.stems.spdf <- crop(x=stems.spdf, y=my.crown.extent)
+    my.pot.stems.spdf <- raster::crop(x=stems.spdf, y=my.crown.extent)
     if(!is.null(my.pot.stems.spdf)){
       over.spdf <- over(x=my.pot.stems.spdf, y=my.crown.spdf)
       my.pot.stems.spdf <- my.pot.stems.spdf[!is.na(over.spdf[, 1]),]
@@ -63,7 +61,7 @@ match_CrownsStems <- function(crowns.spdf, stems.spdf, DBH.min=0.05){
         my.Y <- my.pot.stems.dt[DBH == max.DBH, Y]
         # Remove the tree with this ID from the stem table to
         # not use it for multiple crown clusters
-        stems.spdf <- subset(stems.spdf, TreeID != my.ID)
+        stems.spdf <- raster::subset(stems.spdf, TreeID != my.ID)
       }
     }
     # Store the findings

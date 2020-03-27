@@ -18,16 +18,17 @@
 #' @keywords point cloud split buffer area plot subset parallel
 #' @author Nikolai Knapp, nikolai.knapp@ufz.de
 #' @export
+#' @import pbapply
+#' @import parallel
+#' @import plyr
 parallel_MeanShift <- function(pc.list, lib.path=NA, frac.cores=0.5, version="classic", H2CW=0.3, H2CL=0.4,
                                max.iter=20, buffer.width=10, minz=2, ctr.ac=2){
 
-  # Package requirements
-  require(data.table, lib.loc=lib.path)
-  require(plyr, lib.loc=lib.path)
-  require(parallel, lib.loc=lib.path)
-  require(pbapply, lib.loc=lib.path)
-  require(Rcpp, lib.loc=lib.path)
-
+  Z = Buffer = X = Y = RoundCtrX = 
+  CtrX = RoundCtrY = CtrY = 
+  RoundCtrZ = CtrZ = ID = . =
+  RoundCtrX = RoundCtrY = RoundCtrZ = NA
+  
   # Calculate the number of cores
   N.cores <- detectCores()
   # Initiate cluster

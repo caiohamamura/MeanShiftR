@@ -40,7 +40,7 @@ slidaRtools::display.point.cloud.dt(lid.list[[6]], col.lim=c(0, 1), col.var="Buf
 ################
 # Parallel AMS3D
 ################
-
+clus = MeanShift_Classical(lid.dt)
 # Apply the parallel AMS3D in the slower "classic" version
 system.time(clus.dt <- parallel_MeanShift(pc.list=lid.list, lib.path=.libPaths()[1], frac.cores=0.5, version="classic",
                                           H2CW=0.3, H2CL=0.4, max.iter=20, buffer.width=10, minz=2, ctr.ac=2))

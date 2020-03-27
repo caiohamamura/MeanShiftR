@@ -13,6 +13,7 @@
 #' @param minz Minimum height above ground for a point to be considered in the analysis. Has to be > 0.
 #' @param ctr.ac Centroid accuracy. Specifies the rounding accuracy for centroid positions. After rounding all centroids with the same coordinates are considered to belong to one tree crown.
 #' @return data.frame with X, Y and Z coordinates of each point in the point cloud and  X, Y and Z coordinates of the centroid to which the point belongs
+#' @import Rcpp
 #' @export
 MeanShift_Classical <- function(pc, H2CW_fac, H2CL_fac, UniformKernel = FALSE, MaxIter = 20L, minz = 2, ctr.ac = 2) {
   pre_processing_res = pre_process(pc, minz)
@@ -53,9 +54,18 @@ MeanShift_Voxels <- function(pc, H2CW_fac, H2CL_fac, UniformKernel = FALSE, MaxI
   return(result.dt)
 }
 
+#' @import data.table
 pre_process = function(pc, minz) {
-  my.dt = as.data.table(pc)
-  my.dt <- subset(my.dt, Z >= minz)
+  requireNamespace("data.table")
+
+  # Add data.table operator
+  `:=` <- data.table::`:=`
+
+  X = Y = Z = NA
+
+  my.dt = data.table(pc)
+  my.dt = subset(my.dt, Z >= minz)
+  my.dt = data.table(my.dt)
 
   # Get margins
   my.minx <- floor(min(my.dt$X))
@@ -83,9 +93,17 @@ pre_process = function(pc, minz) {
   return (list(my.mx = my.mx, my.minx = my.minx, my.miny = my.miny, maxx=my.rangex, maxy=my.rangey, maxz=my.maxz))
 }
 
+
 post_process = function(result.df, ctr.ac, my.minx, my.miny)
 {
   requireNamespace("data.table")
+  # Add data.table operator
+  `:=` <- data.table::`:=`
+
+  RoundCtrX = CtrX = RoundCtrY = 
+  CtrY = RoundCtrZ = CtrZ = X = 
+  Y = ID = NA
+
   # Round the centroid coordinates
   result.dt <- data.table(result.df)
   result.dt[, RoundCtrX := plyr::round_any(CtrX, accuracy=ctr.ac)]
