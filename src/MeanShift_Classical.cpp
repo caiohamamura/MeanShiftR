@@ -56,6 +56,9 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
   NumericVector X = pc( _, 0 );
   NumericVector Y = pc( _, 1 );
   NumericVector Z = pc( _, 2 );
+  NumericVector C1 = pc( _, 3 );
+  NumericVector C2 = pc( _, 4 );
+  NumericVector C3 = pc( _, 5 );
   // NumericVector Z = pc( _, 3 );
   NumericVector rngX = Rcpp::range(X);
   NumericVector rngY = Rcpp::range(Y);
@@ -73,17 +76,25 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
   for(int i=0; i<nrows; i++){
     pb.increment();
 
-    // Initialize variables to store wthe mean coordinates of all neigbors with the
+    // Initialize variables to store the mean coordinates of all neigbors with the
     // actual coordinates of the focal point from where the kernel starts moving
     double meanx = (double) X[i];
     double meany = (double) Y[i];
     double meanz = (double) pc(i,2);
+    double meanc1 = (double) C1[i];
+    double meanc2 = (double) C2[i];
+    double meanc3 = (double) C3[i];
 
 
     // Initialize variables to store the old coodinates with unrealistic values of -100
     double oldx = (double) meanx;
     double oldy = (double) meany;
     double oldz = (double) meanz;
+    double oldc1 = (double) meanc1;
+    double oldc2 = (double) meanc2;
+    double oldc3 = (double) meanc3;
+
+
 
     // Keep iterating as long as the centroid (or the maximum number of iterations) is not reached
     int IterCounter = 0;
@@ -92,10 +103,13 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
       double sumx = 0.0;
       double sumy = 0.0;
       double sumz = 0.0;
+      double sumc1 = 0.0;
+      double sumc2 = 0.0;
+      double sumc3 = 0.0;
       double sump = 0.0;
 
       // Increase the iteration counter
-      IterCounter = IterCounter + 1;
+      IterCounter++;
 
       // Calculate cylinder dimensions based on point height
       const double r = H2CW_fac * oldz * 0.5;
@@ -114,6 +128,10 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
         const double jx = (double) X[idx];
         const double jy = (double) Y[idx];
         const double jz = (double) pc(idx, 2);
+        const double jc1 = (double) C1[idx];
+        const double jc2 = (double) C2[idx];
+        const double jc3 = (double) C3[idx];
+
         // double jx = (double) pc(j, 0);
         // double jy = (double) pc(j, 1);
         // double jz = (double) pc(j, 2);
@@ -129,10 +147,13 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
             const double verticalweight = EpanechnikovFunction(h, oldz, jz);
             const double horizontalweight = GaussFunction(d, oldx, oldy, jx, jy);
             const double weight = verticalweight * horizontalweight;
-            sumx = sumx + weight * jx;
-            sumy = sumy + weight * jy;
-            sumz = sumz + weight * jz;
-            sump = sump + weight;
+            sumx += weight * jx;
+            sumy += weight * jy;
+            sumz += weight * jz;
+            sumc1 += weight * jc1;
+            sumc2 += weight * jc2;
+            sumc3 += weight * jc3;
+            sump += weight;
           }
           // If the option of a uniform kernel is set to true calculate the centroid
           // by summing up all coodinates and dividing by the number of points
@@ -141,6 +162,9 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
             sumx = sumx + jx;
             sumy = sumy + jy;
             sumz = sumz + jz;
+            sumc1 = sumc1 + jc1;
+            sumc2 = sumc2 + jc2;
+            sumc3 = sumc3 + jc3;
             sump = sump + 1.0;
           }
         }
@@ -148,14 +172,26 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
       meanx = sumx / sump;
       meany = sumy / sump;
       meanz = sumz / sump;
+      meanc1 = sumc1 / sump;
+      meanc2 = sumc2 / sump;
+      meanc3 = sumc3 / sump;
 
-      if (meanx == oldx && meany == oldy && meanz == oldz)
+      if (meanx == oldx &&
+          meany == oldy &&
+          meanz == oldz &&
+          meanc1 == oldc1 &&
+          meanc2 == oldc2 &&
+          meanc3 == oldc3
+          )
         break;
 
-      // Remember the coordinate means (kernel position) of previos iteration
+      // Remember the coordinate means (kernel position) of previous iteration
       oldx = meanx;
       oldy = meany;
       oldz = meanz;
+      oldc1 = meanc1;
+      oldc2 = meanc2;
+      oldc3 = meanc3;
 
       // If the new position equals the previous position (kernel stopped moving), or if the
       // maximum number of iterations is reached, stop the iterations
