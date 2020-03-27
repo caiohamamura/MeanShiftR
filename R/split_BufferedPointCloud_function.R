@@ -11,9 +11,10 @@
 #' @export
 split_BufferedPointCloud <- function(pc.dt, plot.width, buffer.width){
 
-  # Package requirements
-  require(data.table)
-  require(plyr)
+  sBPC_SpatID = X = Y = 
+  sBPC_llX = sBPC_llY = Buffer = 
+  sBPC_nllX = sBPC_nllY = 
+  sBPC_nSpatID = NA
 
   # Convert to data.table
   pc.dt <- data.table(pc.dt)

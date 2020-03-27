@@ -12,8 +12,14 @@
 #' @return SpatialPolygonsDataFrame with each feature representing the crown projection area of one tree and columns containing various geometric attributes
 #' @keywords tree crown projection area polygons point cloud cluster convex hull ellipse circle perimeter
 #' @author Nikolai Knapp, nikolai.knapp@ufz.de
-
+#' @import sp
+#' @import rgeos
+#' @import cluster
+#' @import tripack
 make_CrownPolygons <- function(pc.dt, type="convexhull", N.min=20, Ext.min=2, Ext.max=50, proj4string=CRS(as.character(NA))){
+
+  CRS = N = ID = ExtX = 
+  ExtY = X = Y = NA
 
   # type="convexhull"
   # N.min=20
@@ -22,11 +28,7 @@ make_CrownPolygons <- function(pc.dt, type="convexhull", N.min=20, Ext.min=2, Ex
   # pc.dt=clus.dt
 
   # Package requirements
-  require(data.table)
-  require(sp)
-  require(rgeos)
-  require(cluster)
-  require(tripack)
+  requireNamespace("data.table")
 
   pc.dt <- data.table(pc.dt)
 
@@ -91,7 +93,7 @@ make_CrownPolygons <- function(pc.dt, type="convexhull", N.min=20, Ext.min=2, Ex
       # Fit an ellipse around the data
       ellipse <- ellipsoidhull(my.points.mx)
       # Calculate border points of the ellipse
-      border.points <- predict(ellipse)
+      border.points <- raster::predict(ellipse)
       # Calculate the center of the ellipse
       center.point <- colMeans(border.points)
       names(center.point) <- c()
@@ -141,8 +143,8 @@ make_CrownPolygons <- function(pc.dt, type="convexhull", N.min=20, Ext.min=2, Ex
       my.NPoints <- my.points.dt$N[1]
       # Add some very small random noise to the coordinates to avoid errors with duplicate
       # coordinate combinations in the circumcircle function
-      my.points.dt[, X := X + 0.01*(runif(nrow(my.points.dt))-0.5)]
-      my.points.dt[, Y := Y + 0.01*(runif(nrow(my.points.dt))-0.5)]
+      my.points.dt[, X := X + 0.01*(stats::runif(nrow(my.points.dt))-0.5)]
+      my.points.dt[, Y := Y + 0.01*(stats::runif(nrow(my.points.dt))-0.5)]
       # Find the smallest circumcircle of the points
       circle <- circumcircle(x=my.points.dt$X, y=my.points.dt$Y)
       # Extract center and radius of the circle
