@@ -1,6 +1,6 @@
 #include <Rcpp.h>
 #include <cmath>
-#include "LittleFunctionsCollection.h"
+#include "LittleFunctionsCollection.hpp"
 using namespace Rcpp;
 using namespace std;
 

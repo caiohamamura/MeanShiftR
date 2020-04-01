@@ -36,7 +36,7 @@ vector<int> getAround(unordered_map<uint64_t, vector<int>> *hashMap, const doubl
 //' @param MaxIter Maximum number of iterations, i.e. steps that the kernel can move for each point. If centroid is not found after all iteration, the last position is assigned as centroid and the processing jumps to the next point
 //' @return data.frame with X, Y and Z coordinates of each point in the point cloud and  X, Y and Z coordinates of the centroid to which the point belongs
 // [[Rcpp::export]]
-DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double H2CL_fac, const bool UniformKernel=false, const int MaxIter=20){
+DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double H2CL_fac, const bool UniformKernel=false, const int MaxIter=20, const double maxIntensity=65535, const double intensityImportance = 1, const double spatialImportance = 1, const int nDigits = 2){
 
   // Create three vectors that all have the length of the incoming point cloud.
   // In these vectors the coodinates of the centroids will be stored
@@ -44,6 +44,7 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
   NumericVector centroidx(nrows);
   NumericVector centroidy(nrows);
   NumericVector centroidz(nrows);
+  NumericVector point_ids(nrows);
 
   Progress pb(nrows, "Meanshifting: ");
 
@@ -51,6 +52,8 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
   // Create an index tree
   /////////////////////////
   std::unordered_map<uint64_t, std::vector<int>> mapIndex;
+  std::unordered_map<uint64_t, std::unordered_map<uint64_t, std::unordered_map<uint64_t, int>>> idsMap;
+  int i_id = 1;
 
   // Remove min
   NumericVector X = pc( _, 0 );
@@ -67,7 +70,7 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
   for (int i = 0; i < nrows; i++) {
     X[i] -= rngX[0];
     Y[i] -= rngY[0];
-    uint64_t idx = ((uint64_t)X[i] << bitShift) + Y[i];
+    uint64_t idx = ((uint64_t)X[i] << bitShift) + (uint64_t)Y[i];
     mapIndex[idx].push_back(i);
   }
 
@@ -80,7 +83,7 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
     // actual coordinates of the focal point from where the kernel starts moving
     double meanx = (double) X[i];
     double meany = (double) Y[i];
-    double meanz = (double) pc(i,2);
+    double meanz = (double) Z[i];
     double meanc1 = (double) C1[i];
     double meanc2 = (double) C2[i];
     double meanc3 = (double) C3[i];
@@ -113,7 +116,6 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
 
       // Calculate cylinder dimensions based on point height
       const double r = H2CW_fac * oldz * 0.5;
-      const double d = H2CW_fac * oldz;
       const double h = H2CL_fac * oldz;
 
       //
@@ -127,7 +129,7 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
         const int idx = nn_idx[j];
         const double jx = (double) X[idx];
         const double jy = (double) Y[idx];
-        const double jz = (double) pc(idx, 2);
+        const double jz = (double) Z[idx];
         const double jc1 = (double) C1[idx];
         const double jc2 = (double) C2[idx];
         const double jc3 = (double) C3[idx];
@@ -145,8 +147,13 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
           // sum of all weights
           if(UniformKernel == false){
             const double verticalweight = EpanechnikovFunction(h, oldz, jz);
-            const double horizontalweight = GaussFunction(d, oldx, oldy, jx, jy);
-            const double weight = verticalweight * horizontalweight;
+            const double horizontalweight = GaussFunction(r, oldx, oldy, jx, jy);
+            const double spatialWeight = verticalweight * horizontalweight;
+            double intensityWeight = 1.0;
+            intensityWeight *= IntensityGaussFunction(maxIntensity, oldc1, jc1);
+            intensityWeight *= IntensityGaussFunction(maxIntensity, oldc2, jc2);
+            intensityWeight *= IntensityGaussFunction(maxIntensity, oldc3, jc3);
+            const double weight = pow(spatialWeight, spatialImportance) * pow(intensityWeight, intensityImportance);
             sumx += weight * jx;
             sumy += weight * jy;
             sumz += weight * jz;
@@ -159,13 +166,13 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
           // by summing up all coodinates and dividing by the number of points
           else
           {
-            sumx = sumx + jx;
-            sumy = sumy + jy;
-            sumz = sumz + jz;
-            sumc1 = sumc1 + jc1;
-            sumc2 = sumc2 + jc2;
-            sumc3 = sumc3 + jc3;
-            sump = sump + 1.0;
+            sumx += jx;
+            sumy += jy;
+            sumz += jz;
+            sumc1 += jc1;
+            sumc2 += jc2;
+            sumc3 += jc3;
+            sump += 1.0;
           }
         }
       }
@@ -182,7 +189,7 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
           meanc1 == oldc1 &&
           meanc2 == oldc2 &&
           meanc3 == oldc3
-          )
+      )
         break;
 
       // Remember the coordinate means (kernel position) of previous iteration
@@ -201,6 +208,17 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
     centroidx[i] = meanx + rngX[0];
     centroidy[i] = meany + rngY[0];
     centroidz[i] = meanz;
+    uint64_t xInd = (uint64_t)(centroidx[i]*pow(10,nDigits)+0.5);
+    uint64_t yInd = (uint64_t)(centroidy[i]*pow(10,nDigits)+0.5);
+    uint64_t zInd = (uint64_t)(centroidz[i]*pow(10,nDigits)+0.5);
+    if(idsMap.find(xInd) != idsMap.end() &&
+       idsMap[xInd].find(yInd) != idsMap[xInd].end() &&
+       idsMap[xInd][yInd].find(zInd) != idsMap[xInd][yInd].end()) {
+      point_ids[i] = idsMap[xInd][yInd][zInd];
+    } else {
+      idsMap[xInd][yInd][zInd] = i_id++;
+      point_ids[i] = i_id;
+    }
 
     if ((i % 1000) == 999) {
       try
@@ -217,6 +235,5 @@ DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double 
 
 
   // Return the result as a data.frame with XYZ-coordinates of all points and their corresponding centroids
-  return DataFrame::create(_["X"]= pc(_,0),_["Y"]= pc(_,1),_["Z"]= pc(_,2),_["CtrX"]= centroidx,_["CtrY"]= centroidy,_["CtrZ"]= centroidz);
+  return DataFrame::create(_["id"]=pc(_,6), _["X"]= pc(_,0),_["Y"]= pc(_,1),_["Z"]= pc(_,2),_["CtrX"]= centroidx,_["CtrY"]= centroidy,_["CtrZ"]= centroidz, _["treeID"] = point_ids);
 }
-

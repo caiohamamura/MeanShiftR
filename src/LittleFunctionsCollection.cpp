@@ -7,8 +7,9 @@ using namespace Rcpp;
 
 // Function to check whether a point [PointX, PointY, PointZ] is within a cylider of a given radius
 // and height from the center point of the top circle [TopX, TopY, TopZ]
+// the cylinder is unbalanced to top though CtrZ - (0.25*Height) instead of 0.5*Height
 bool InCylinder(double PointX, double PointY, double PointZ, double Radius, double Height, double CtrX, double CtrY, double CtrZ){
-  if ((pow((PointX - CtrX), 2.0) + pow((PointY - CtrY), 2.0) <= pow(Radius, 2.0)) && (PointZ >= (CtrZ - (0.5*Height))) && (PointZ <= (CtrZ + (0.5*Height))) == true) {
+  if ((pow((PointX - CtrX), 2.0) + pow((PointY - CtrY), 2.0) <= pow(Radius, 2.0)) && (PointZ >= (CtrZ - (0.25*Height))) && (PointZ <= (CtrZ + (0.5*Height))) == true) {
     return true;
   }	else {
     return false;
@@ -31,25 +32,10 @@ double VerticalDistance(double Height, double CtrZ, double PointZ){
 //  return(mindist)
 //}
 
-double VerticalMask(double Height, double CtrZ, double PointZ){
-  if((PointZ >= CtrZ-Height/4) && (PointZ <= CtrZ+Height/2)){
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
-
-//Equivalent R code
-//maskx <- function(h, CtrZ, PointZ){
-//  maskvec <- ifelse(PointZ >= CtrZ-h/4 & PointZ <= CtrZ+h/2, 1, 0)
-//  return(maskvec)
-//}
-
 // Epanechnikov function for vertical filter
+// Vertical mask is not needed since inCylinder will already check that
 double EpanechnikovFunction(double Height, double CtrZ, double PointZ){
-  double Result = VerticalMask(Height, CtrZ, PointZ)*(1-(pow((1-VerticalDistance(Height, CtrZ, PointZ)), 2.0)));
+  double Result = 1.0-(pow((1.0-VerticalDistance(Height, CtrZ, PointZ)), 2.0));
   return Result;
 }
 
@@ -63,7 +49,15 @@ double EpanechnikovFunction(double Height, double CtrZ, double PointZ){
 double GaussFunction(double Width, double CtrX, double CtrY, double PointX, double PointY){
   double Distance = pow((pow((PointX-CtrX), 2.0)+pow((PointY-CtrY), 2.0)), 0.5);
   double NormDistance = Distance/Width;
-  double Result = std::exp(-5.0*pow(NormDistance, 2.0));
+  double Result = std::exp(-5*pow(NormDistance, 2.0));
+  return Result;
+}
+
+
+double IntensityGaussFunction(double Width, double CtrI, double PointI){
+  double Distance = fabs(CtrI-PointI);
+  double NormDistance = Distance/Width;
+  double Result = std::exp(-5*pow(NormDistance, 2.0));
   return Result;
 }
 
