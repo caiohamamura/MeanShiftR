@@ -4,8 +4,17 @@
 \alias{C_MeanShift_Classical}
 \title{Mean shift clustering}
 \usage{
-C_MeanShift_Classical(pc, H2CW_fac, H2CL_fac, UniformKernel = FALSE,
-  MaxIter = 20L)
+C_MeanShift_Classical(
+  pc,
+  H2CW_fac,
+  H2CL_fac,
+  UniformKernel = FALSE,
+  MaxIter = 20L,
+  maxIntensity = 65535,
+  spectralImportance = 1,
+  spatialImportance = 1,
+  clustDist = 1
+)
 }
 \arguments{
 \item{pc}{Point cloud has to be in matrix format with 3-columns representing X, Y and Z and each row representing one point}

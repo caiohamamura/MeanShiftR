@@ -4,8 +4,16 @@
 \alias{C_MeanShift_Voxels}
 \title{Mean shift clustering using a discrete voxel space}
 \usage{
-C_MeanShift_Voxels(pc, H2CW_fac, H2CL_fac, UniformKernel = FALSE,
-  MaxIter = 20L, maxx = 100L, maxy = 100L, maxz = 60L)
+C_MeanShift_Voxels(
+  pc,
+  H2CW_fac,
+  H2CL_fac,
+  UniformKernel = FALSE,
+  MaxIter = 20L,
+  maxx = 100L,
+  maxy = 100L,
+  maxz = 60L
+)
 }
 \arguments{
 \item{pc}{Point cloud has to be in matrix format with 3-columns representing X, Y and Z and each row representing one point}

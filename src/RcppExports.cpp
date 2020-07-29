@@ -6,8 +6,8 @@
 using namespace Rcpp;
 
 // C_MeanShift_Classical
-DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double H2CL_fac, const bool UniformKernel, const int MaxIter, const double maxIntensity, const double intensityImportance, const double spatialImportance, const double centroidDist);
-RcppExport SEXP _MeanShiftR_C_MeanShift_Classical(SEXP pcSEXP, SEXP H2CW_facSEXP, SEXP H2CL_facSEXP, SEXP UniformKernelSEXP, SEXP MaxIterSEXP, SEXP maxIntensitySEXP, SEXP intensityImportanceSEXP, SEXP spatialImportanceSEXP, SEXP centroidDistSEXP) {
+DataFrame C_MeanShift_Classical(NumericMatrix pc, const double H2CW_fac, double H2CL_fac, const bool UniformKernel, const int MaxIter, const double maxIntensity, const double spectralImportance, const double spatialImportance, const double clustDist);
+RcppExport SEXP _MeanShiftR_C_MeanShift_Classical(SEXP pcSEXP, SEXP H2CW_facSEXP, SEXP H2CL_facSEXP, SEXP UniformKernelSEXP, SEXP MaxIterSEXP, SEXP maxIntensitySEXP, SEXP spectralImportanceSEXP, SEXP spatialImportanceSEXP, SEXP clustDistSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -17,10 +17,10 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const bool >::type UniformKernel(UniformKernelSEXP);
     Rcpp::traits::input_parameter< const int >::type MaxIter(MaxIterSEXP);
     Rcpp::traits::input_parameter< const double >::type maxIntensity(maxIntensitySEXP);
-    Rcpp::traits::input_parameter< const double >::type intensityImportance(intensityImportanceSEXP);
+    Rcpp::traits::input_parameter< const double >::type spectralImportance(spectralImportanceSEXP);
     Rcpp::traits::input_parameter< const double >::type spatialImportance(spatialImportanceSEXP);
-    Rcpp::traits::input_parameter< const double >::type centroidDist(centroidDistSEXP);
-    rcpp_result_gen = Rcpp::wrap(C_MeanShift_Classical(pc, H2CW_fac, H2CL_fac, UniformKernel, MaxIter, maxIntensity, intensityImportance, spatialImportance, centroidDist));
+    Rcpp::traits::input_parameter< const double >::type clustDist(clustDistSEXP);
+    rcpp_result_gen = Rcpp::wrap(C_MeanShift_Classical(pc, H2CW_fac, H2CL_fac, UniformKernel, MaxIter, maxIntensity, spectralImportance, spatialImportance, clustDist));
     return rcpp_result_gen;
 END_RCPP
 }

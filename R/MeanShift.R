@@ -15,16 +15,14 @@
 #' @return data.frame with X, Y and Z coordinates of each point in the point cloud and  X, Y and Z coordinates of the centroid to which the point belongs
 #' @import Rcpp
 #' @export
-MeanShift_Classical <- function(pc, H2CW_fac, H2CL_fac, UniformKernel = FALSE, MaxIter = 20L, minz = 2, ctr.ac = 2) {
+MeanShift_Classical <- function(pc, H2CW_fac, H2CL_fac, UniformKernel = FALSE, MaxIter = 20L, minz = 2, ctr.ac = 2, maxIntensity=65535, spectralImportance = 1, spatialImportance = 1, clustDist = 2) {
   pre_processing_res = pre_process(pc, minz)
   my.minx = pre_processing_res[["my.minx"]]
   my.miny = pre_processing_res[["my.miny"]]
   my.mx = pre_processing_res[["my.mx"]]
 
-  result.df = C_MeanShift_Classical(my.mx, H2CW_fac, H2CL_fac, UniformKernel, MaxIter)
-
-  result.dt = post_process(result.df, ctr.ac, my.minx, my.miny)
-  return(result.dt)
+  result.df = C_MeanShift_Classical(my.mx, H2CW_fac, H2CL_fac, UniformKernel, MaxIter, maxIntensity, spectralImportance, spatialImportance, clustDist)
+  return(data.table::as.data.table(result.df))
 }
 
 
@@ -63,9 +61,9 @@ pre_process = function(pc, minz) {
 
   X = Y = Z = NA
 
-  my.dt = data.table(pc)
-  my.dt = subset(my.dt, Z >= minz)
-  my.dt = data.table(my.dt)
+  my.dt = data.table::data.table(pc)
+  my.dt[,id := .I]
+  my.dt = my.dt[Z >= minz]
 
   # Get margins
   my.minx <- floor(min(my.dt$X))
@@ -87,8 +85,8 @@ pre_process = function(pc, minz) {
   my.dt[, Y := Y - my.miny]
 
   # Convert to 3-column matrix
+  data.table::setcolorder(my.dt, "id")
   my.mx <- as.matrix(my.dt)
-  my.mx <- my.mx[, 1:3]
 
   return (list(my.mx = my.mx, my.minx = my.minx, my.miny = my.miny, maxx=my.rangex, maxy=my.rangey, maxz=my.maxz))
 }
@@ -100,8 +98,8 @@ post_process = function(result.df, ctr.ac, my.minx, my.miny)
   # Add data.table operator
   `:=` <- data.table::`:=`
 
-  RoundCtrX = CtrX = RoundCtrY = 
-  CtrY = RoundCtrZ = CtrZ = X = 
+  RoundCtrX = CtrX = RoundCtrY =
+  CtrY = RoundCtrZ = CtrZ = X =
   Y = ID = NA
 
   # Round the centroid coordinates

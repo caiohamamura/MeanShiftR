@@ -4,7 +4,7 @@
 #' sub point clouds of a large investigation area in parallel. It requires a list of sub point clouds as
 #' input and returns one large clustered point cloud as output. The input should have buffer zones around
 #' the focal areas. The buffer width should correspond to at least the maximal possible tree crown radius.
-#' @param pc.list List of point clouds in data.table format containing columns X, Y and Z (produced by split_BufferedPointCloud function)
+#' @param pc.list List of point Sclouds in data.table format containing columns X, Y and Z (produced by split_BufferedPointCloud function)
 #' @param lib.path String specifying the path from where to load the R packages. Should be set to .libPaths()[1].
 #' @param frac.cores Fraction of available cores to use for parallelization
 #' @param version of the AMS3D algorithm. Can be set to "classic" (slow but precise also with small trees) or "voxel" (fast but based on rounded coordinates of 1-m precision)

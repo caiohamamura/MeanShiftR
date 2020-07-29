@@ -12,8 +12,8 @@
 #' @param UniformKernel Boolean to enable the application of a simple uniform kernel without distance weighting (Default False)
 #' @param MaxIter Maximum number of iterations, i.e. steps that the kernel can move for each point. If centroid is not found after all iteration, the last position is assigned as centroid and the processing jumps to the next point
 #' @return data.frame with X, Y and Z coordinates of each point in the point cloud and  X, Y and Z coordinates of the centroid to which the point belongs
-C_MeanShift_Classical <- function(pc, H2CW_fac, H2CL_fac, UniformKernel = FALSE, MaxIter = 20L) {
-    .Call('_MeanShiftR_C_MeanShift_Classical', PACKAGE = 'MeanShiftR', pc, H2CW_fac, H2CL_fac, UniformKernel, MaxIter)
+C_MeanShift_Classical <- function(pc, H2CW_fac, H2CL_fac, UniformKernel = FALSE, MaxIter = 20L, maxIntensity = 65535, spectralImportance = 1, spatialImportance = 1, clustDist = 1.0) {
+    .Call('_MeanShiftR_C_MeanShift_Classical', PACKAGE = 'MeanShiftR', pc, H2CW_fac, H2CL_fac, UniformKernel, MaxIter, maxIntensity, spectralImportance, spatialImportance, clustDist)
 }
 
 #' Mean shift clustering using a discrete voxel space

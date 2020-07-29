@@ -1,3 +1,5 @@
+#ifndef MEANSHIFTR_LITTLEFUNCTIONSCOLLECTION_HPP
+#define MEANSHIFTR_LITTLEFUNCTIONSCOLLECTION_HPP
 #include <Rcpp.h>
 #include <cmath>
 
@@ -19,12 +21,14 @@ namespace tools
 
             double distance(const point *pt) const {
                 return (
-                    sqrt(
-                        pow(x - pt->x, 2) +
-                        pow(y - pt->y, 2) +
-                        pow(z - pt->z, 2)
+                    std::sqrt(
+                        std::pow(x - pt->x, 2) +
+                        std::pow(y - pt->y, 2) +
+                        std::pow(z - pt->z, 2)
                     )
                 );
             }
     };
 }
+
+#endif /* MEANSHIFTR_LITTLEFUNCTIONSCOLLECTION_HPP */
